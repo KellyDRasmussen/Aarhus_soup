@@ -17,6 +17,7 @@
   --line: #dde1e8;
   --accent: #c43d4b;      /* stage-curtain red */
   --accent-soft: #f6dfe2;
+  --on-accent: #ffffff;
   --good: #0b6aa8;      /* blue, not green: readable with red-green colour blindness */
   --warn: #8a5a00;
   --bad: #c2410c;       /* orange, not red */
@@ -31,13 +32,13 @@
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
     --ink: #e8ebf1; --muted: #9aa3b2; --paper: #12161e; --card: #1b2029; --line: #2c333f;
-    --accent: #ee6f7c; --accent-soft: #3a2026; --good: #5fb0ec; --warn: #e6b450; --bad: #f08a4b;
+    --accent: #ee6f7c; --accent-soft: #3a2026; --on-accent: #12161e; --good: #5fb0ec; --warn: #e6b450; --bad: #f08a4b;
     --band: rgba(95,176,236,.13); --curve: #56B4E9; --zone: rgba(230,159,0,.16); --zone-line: #E69F00; color-scheme: dark;
   }
 }
 :root[data-theme="dark"] {
   --ink: #e8ebf1; --muted: #9aa3b2; --paper: #12161e; --card: #1b2029; --line: #2c333f;
-  --accent: #ee6f7c; --accent-soft: #3a2026; --good: #5fb0ec; --warn: #e6b450; --bad: #f08a4b;
+  --accent: #ee6f7c; --accent-soft: #3a2026; --on-accent: #12161e; --good: #5fb0ec; --warn: #e6b450; --bad: #f08a4b;
   --band: rgba(95,176,236,.13); --curve: #56B4E9; --zone: rgba(230,159,0,.16); --zone-line: #E69F00; color-scheme: dark;
 }
 * { box-sizing: border-box; }
@@ -46,16 +47,19 @@ body { background: var(--paper); color: var(--ink); font: 15px/1.5 var(--body); 
 .wrap { max-width: 1120px; margin: 0 auto; padding: 24px 16px 48px; }
 header h1 { font: 800 clamp(26px, 4vw, 36px)/1.1 var(--display); margin: 0 0 6px; text-wrap: balance; }
 header p { margin: 0; color: var(--muted); max-width: 65ch; }
-.presets { display: flex; flex-wrap: wrap; gap: 8px; margin: 16px 0 20px; align-items: center; }
+.toolbar { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 12px 24px; margin: 16px 0 20px; }
+.presets, .actions { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
 .presets span { color: var(--muted); font-size: 13px; margin-right: 4px; }
 button { font: 500 14px var(--body); color: var(--ink); background: var(--card); border: 1px solid var(--line);
   border-radius: 999px; padding: 7px 14px; cursor: pointer; }
 button:hover { border-color: var(--accent); }
 button:focus-visible, input:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
-button.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
-.btn-link { font: 500 14px var(--body); color: var(--ink); background: var(--card); border: 1px solid var(--accent); border-radius: 999px; padding: 7px 14px; text-decoration: none; }
-.btn-link:hover { background: var(--accent-soft); }
-.btn-link:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+/* Scenario chips: filled only when that scenario matches the sliders */
+.chip-btn[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
+/* Actions: plain buttons with an underline-style label, never filled */
+.action { font: 600 14px var(--body); color: var(--accent); background: transparent; border: 0; border-radius: 6px; padding: 7px 4px; cursor: pointer; text-decoration: underline; text-underline-offset: 3px; }
+.action:hover { color: var(--ink); }
+.action:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .grid { display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 6fr); gap: 20px; align-items: start; }
 @media (max-width: 860px) { .grid { grid-template-columns: 1fr; } }
 .card { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 18px; }
@@ -111,7 +115,7 @@ svg text { fill: var(--muted); font: 11px var(--body); }
 .seg { display: inline-flex; border: 1px solid var(--line); border-radius: 999px; padding: 2px; background: var(--paper); }
 .seg input { position: absolute; opacity: 0; width: 1px; height: 1px; }
 .seg label { padding: 5px 12px; border-radius: 999px; font-size: 13.5px; cursor: pointer; color: var(--muted); }
-.seg input:checked + label { background: var(--accent); color: #fff; font-weight: 600; }
+.seg input:checked + label { background: var(--accent); color: var(--on-accent); font-weight: 600; }
 .seg input:focus-visible + label { outline: 2px solid var(--accent); outline-offset: 1px; }
 #payrollExtras[hidden] { display: none; }
 #payrollExtras .row:first-of-type { border-top: 1px solid var(--line); }
@@ -125,14 +129,19 @@ svg text { fill: var(--muted); font: 11px var(--body); }
     <p>Move the sliders to see what one night costs, what a ticket needs to be, and what a season adds up to. All amounts in DKK. Starting values are rough guesses to replace with real quotes.</p>
   </header>
 
-  <div class="presets" role="group" aria-label="Scenarios">
-    <span>Try a scenario:</span>
-    <button type="button" data-preset="pilot">Paid pilot</button>
-    <button type="button" data-preset="volunteer">Volunteer-run</button>
-    <button type="button" data-preset="grant">Grant-funded, low ticket</button>
-    <button type="button" data-preset="monthly">Monthly, bigger groups</button>
-    <a id="briefLink" class="btn-link" href="pitch.html">Open pitch brief with these numbers</a>
-    <button type="button" id="copy" class="primary">Copy scenario summary</button><span id="copied" class="copied" aria-live="polite"></span>
+  <div class="toolbar">
+    <div class="presets" role="group" aria-label="Scenarios">
+      <span>Try a scenario:</span>
+      <button type="button" class="chip-btn" data-preset="pilot" aria-pressed="false">Paid pilot</button>
+      <button type="button" class="chip-btn" data-preset="volunteer" aria-pressed="false">Volunteer-run</button>
+      <button type="button" class="chip-btn" data-preset="grant" aria-pressed="false">Grant-funded, low ticket</button>
+      <button type="button" class="chip-btn" data-preset="monthly" aria-pressed="false">Monthly, bigger groups</button>
+    </div>
+    <div class="actions">
+      <a id="briefLink" class="action" href="pitch.html">Open pitch brief</a>
+      <button type="button" id="copy" class="action">Copy scenario summary</button>
+      <span id="copied" class="copied" aria-live="polite"></span>
+    </div>
   </div>
 
   <div class="grid">
@@ -450,6 +459,12 @@ function update() {
   };
   document.getElementById('briefLink').href = 'pitch.html?' + new URLSearchParams(brief).toString();
   try { localStorage.setItem('aarhusSoupModel', JSON.stringify(brief)); } catch (e) {}
+
+  document.querySelectorAll('[data-preset]').forEach(b => {
+    const pr = presets[b.dataset.preset];
+    const match = Object.entries(pr).every(([k, val]) => k === 'ownFood' ? ownFood() === val : v[k] === val);
+    b.setAttribute('aria-pressed', match ? 'true' : 'false');
+  });
 
   drawChart();
 }
