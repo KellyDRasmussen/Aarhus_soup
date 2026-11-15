@@ -445,7 +445,8 @@ function update() {
   const brief = {
     places: p, sold: Math.round(a), fill: v.fill, fac: v.facilitators, fee: v.fee, ticket: v.ticket, nights: v.events,
     own: ownFood() ? 1 : 0, cost: Math.round(nightCost), income: Math.round(nightRev), grant: Math.round(v.grant / v.events),
-    gap: Math.round(nightCost - nightRev - v.grant / v.events), room: Math.round(costs['Workshop room']), friv: isFrivillig() ? 1 : 0
+    gap: Math.round(nightCost - nightRev - v.grant / v.events), room: Math.round(costs['Workshop room']), friv: isFrivillig() ? 1 : 0,
+    ts: Date.now()
   };
   document.getElementById('briefLink').href = 'pitch.html?' + new URLSearchParams(brief).toString();
   try { localStorage.setItem('aarhusSoupModel', JSON.stringify(brief)); } catch (e) {}

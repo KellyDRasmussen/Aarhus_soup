@@ -114,49 +114,61 @@ a:focus-visible { outline: 2px solid var(--spot); outline-offset: 2px; }
 
 </div>
 <script>
-// Figures come from the budget model: query string first, then the last scenario saved in this browser, then the paid pilot scenario.
-const defaults = { places: 16, sold: 14, fill: 85, fac: 2, fee: 800, ticket: 200, nights: 6, own: 1, cost: 2807, income: 2720, grant: 0, gap: 87, room: 0, friv: 1 };
-const d = Object.assign({}, defaults);
-let source = 'the paid pilot scenario';
-const q = new URLSearchParams(location.search);
-if (q.has('gap')) {
-  Object.keys(defaults).forEach(k => { if (q.has(k) && !isNaN(+q.get(k))) d[k] = +q.get(k); });
-  source = 'the budget model';
-} else {
-  try {
-    const saved = JSON.parse(localStorage.getItem('aarhusSoupModel'));
-    if (saved && 'gap' in saved) { Object.assign(d, saved); source = 'the last scenario set in the budget model on this device'; }
-  } catch (e) {}
+// Figures come from the budget model. The newest of the link's numbers and the last scenario saved in this
+// browser wins; with neither, the paid pilot scenario is shown. The page updates live while the model is open in another tab.
+const defaults = { places: 16, sold: 14, fill: 85, fac: 2, fee: 800, ticket: 200, nights: 6, own: 1, cost: 2807, income: 2720, grant: 0, gap: 87, room: 0, friv: 1, ts: 0 };
+
+function fromQuery() {
+  const q = new URLSearchParams(location.search);
+  if (!q.has('gap')) return null;
+  const out = {};
+  Object.keys(defaults).forEach(k => { if (q.has(k) && !isNaN(+q.get(k))) out[k] = +q.get(k); });
+  return out;
+}
+function fromStorage() {
+  try { const saved = JSON.parse(localStorage.getItem('aarhusSoupModel')); return saved && 'gap' in saved ? saved : null; }
+  catch (e) { return null; }
+}
+function pick() {
+  const q = fromQuery(), st = fromStorage();
+  if (st && (!q || (st.ts || 0) > (q.ts || 0))) return [Object.assign({}, defaults, st), 'the budget model, as last set on this device'];
+  if (q) return [Object.assign({}, defaults, q), 'the budget model'];
+  return [Object.assign({}, defaults), 'the paid pilot scenario'];
 }
 
 const kr = n => (Math.round(n / 50) * 50).toLocaleString('da-DK') + ' kr';
 const set = (id, text) => { document.getElementById(id).textContent = text; };
 
-set('scenario', 'From ' + source + ': ' + d.places + ' places per night, ' + d.fill + '% sold (about ' + d.sold + ' people), ' +
-  d.fac + ' facilitator' + (d.fac === 1 ? '' : 's') + ' at ' + kr(d.fee) + ' each, tickets at ' + kr(d.ticket) + ', ' +
-  d.nights + ' nights a year. ' + (d.own ? 'Participants buy their own food.' : 'Food is included in the ticket.'));
+function render(d, source) {
+  set('scenario', 'From ' + source + ': ' + d.places + ' places per night, ' + d.fill + '% sold (about ' + d.sold + ' people), ' +
+    d.fac + ' facilitator' + (d.fac === 1 ? '' : 's') + ' at ' + kr(d.fee) + ' each, tickets at ' + kr(d.ticket) + ', ' +
+    d.nights + ' nights a year. ' + (d.own ? 'Participants buy their own food.' : 'Food is included in the ticket.'));
 
-set('cost', 'about ' + kr(d.cost));
-set('income', 'about ' + kr(d.income));
-document.getElementById('grantRow').hidden = !d.grant;
-set('grant', 'about ' + kr(d.grant));
+  set('cost', 'about ' + kr(d.cost));
+  set('income', 'about ' + kr(d.income));
+  document.getElementById('grantRow').hidden = !d.grant;
+  set('grant', 'about ' + kr(d.grant));
 
-const short = d.gap > 0;
-document.getElementById('gapRow').classList.toggle('short', short);
-set('gapLabel', short ? 'Gap per night' : 'Surplus per night');
-set('gap', 'about ' + kr(Math.abs(d.gap)));
-set('seasonLabel', (short ? 'Gap' : 'Surplus') + ' for ' + d.nights + ' nights');
-set('season', 'about ' + kr(Math.abs(d.gap * d.nights)));
-const roomGap = d.gap - d.room;
-document.getElementById('roomRow').hidden = !d.room;
-set('roomGap', roomGap > 0 ? 'gap of about ' + kr(roomGap) : 'surplus of about ' + kr(-roomGap));
+  const short = d.gap > 0;
+  document.getElementById('gapRow').classList.toggle('short', short);
+  set('gapLabel', short ? 'Gap per night' : 'Surplus per night');
+  set('gap', 'about ' + kr(Math.abs(d.gap)));
+  set('seasonLabel', (short ? 'Gap' : 'Surplus') + ' for ' + d.nights + ' nights');
+  set('season', 'about ' + kr(Math.abs(d.gap * d.nights)));
+  const roomGap = d.gap - d.room;
+  document.getElementById('roomRow').hidden = !d.room;
+  set('roomGap', roomGap > 0 ? 'gap of about ' + kr(roomGap) : 'surplus of about ' + kr(-roomGap));
 
-set('voteLine', short
-  ? 'about ' + kr(d.gap) + ' covers the gap for one night, and about ' + kr(d.gap * d.nights) + ' covers ' + d.nights + ' nights.'
-  : 'in this scenario tickets cover the costs, so funding could lower the ticket price or pay for more nights.');
-set('roomLine', d.room > 0
-  ? 'In this scenario the room costs about ' + kr(d.room) + ' per night, so a free room ' + (roomGap > 0 ? 'cuts the gap to about ' + kr(roomGap) + '.' : 'closes the gap.')
-  : 'This scenario assumes a free room, as the Improv Weekend workshops had. A paid room adds its full cost to every night.');
+  set('voteLine', short
+    ? 'about ' + kr(d.gap) + ' covers the gap for one night, and about ' + kr(d.gap * d.nights) + ' covers ' + d.nights + ' nights.'
+    : 'in this scenario tickets cover the costs, so funding could lower the ticket price or pay for more nights.');
+  set('roomLine', d.room > 0
+    ? 'In this scenario the room costs about ' + kr(d.room) + ' per night, so a free room ' + (roomGap > 0 ? 'cuts the gap to about ' + kr(roomGap) + '.' : 'closes the gap.')
+    : 'This scenario assumes a free room, as the Improv Weekend workshops had. A paid room adds its full cost to every night.');
+}
+
+render(...pick());
+window.addEventListener('storage', e => { if (e.key === 'aarhusSoupModel') render(...pick()); });
 </script>
 </body>
 </html>
