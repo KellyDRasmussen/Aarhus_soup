@@ -21,6 +21,9 @@
   --warn: #8a5a00;
   --bad: #c2410c;       /* orange, not red */
   --band: rgba(11,106,168,.10);
+  --curve: #0072B2;     /* chart: blue line, orange hatched band (colour-blind safe pair) */
+  --zone: rgba(230,159,0,.16);
+  --zone-line: #a86f00;
   --display: "Bricolage Grotesque", "Segoe UI", system-ui, sans-serif;
   --body: "IBM Plex Sans", "Segoe UI", system-ui, sans-serif;
   color-scheme: light;
@@ -29,13 +32,13 @@
   :root:not([data-theme="light"]) {
     --ink: #e8ebf1; --muted: #9aa3b2; --paper: #12161e; --card: #1b2029; --line: #2c333f;
     --accent: #ee6f7c; --accent-soft: #3a2026; --good: #5fb0ec; --warn: #e6b450; --bad: #f08a4b;
-    --band: rgba(95,176,236,.13); color-scheme: dark;
+    --band: rgba(95,176,236,.13); --curve: #56B4E9; --zone: rgba(230,159,0,.16); --zone-line: #E69F00; color-scheme: dark;
   }
 }
 :root[data-theme="dark"] {
   --ink: #e8ebf1; --muted: #9aa3b2; --paper: #12161e; --card: #1b2029; --line: #2c333f;
   --accent: #ee6f7c; --accent-soft: #3a2026; --good: #5fb0ec; --warn: #e6b450; --bad: #f08a4b;
-  --band: rgba(95,176,236,.13); color-scheme: dark;
+  --band: rgba(95,176,236,.13); --curve: #56B4E9; --zone: rgba(230,159,0,.16); --zone-line: #E69F00; color-scheme: dark;
 }
 * { box-sizing: border-box; }
 html, body { margin: 0; }
@@ -218,7 +221,7 @@ svg text { fill: var(--muted); font: 11px var(--body); }
       <div class="card">
         <h2>Finding the sweet spot</h2>
         <svg id="chart" viewBox="0 0 600 270" width="100%" role="img" aria-label="Break-even ticket price by number of places"></svg>
-        <p class="chart-note">The red line is the ticket price needed to break even for each number of places, with everything else as set, including how many places are sold. Below the dashed line (your ticket price), a night covers its costs. The blue band is where groups stay a comfortable size for your number of facilitators.</p>
+        <p class="chart-note">The blue line is the ticket price needed to break even for each number of places, with everything else as set. Where the line is thick, it is below your ticket price (the dashed line), so a night covers its costs. The hatched band shows group sizes that are comfortable for your number of facilitators. The sweet spot is where the thick line runs through the band.</p>
       </div>
     </div>
   </div>
@@ -463,7 +466,13 @@ function drawChart() {
   let s = '';
 
   const bandLo = Math.max(pMin, 5 * v.facilitators * 100 / v.fill), bandHi = Math.min(pMax, 10 * v.facilitators * 100 / v.fill);
-  if (bandHi > bandLo) s += '<rect x="' + x(bandLo) + '" y="' + T + '" width="' + (x(bandHi) - x(bandLo)) + '" height="' + (H - T - B) + '" fill="var(--band)"/>';
+  s += '<defs><pattern id="hatch" width="7" height="7" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><line x1="0" y1="0" x2="0" y2="7" stroke="var(--zone-line)" stroke-width="1.2" opacity=".45"/></pattern></defs>';
+  if (bandHi > bandLo) {
+    const bx = x(bandLo), bw = x(bandHi) - x(bandLo);
+    s += '<rect x="' + bx + '" y="' + T + '" width="' + bw + '" height="' + (H - T - B) + '" fill="var(--zone)"/>';
+    s += '<rect x="' + bx + '" y="' + T + '" width="' + bw + '" height="' + (H - T - B) + '" fill="url(#hatch)"/>';
+    if (bw > 70) s += '<text x="' + (bx + bw / 2) + '" y="' + (T + 14) + '" text-anchor="middle" style="fill:var(--ink);font-weight:600">Comfortable group size</text>';
+  }
 
   const step = yMax <= 200 ? 50 : yMax <= 500 ? 100 : yMax <= 1000 ? 200 : 500;
   for (let t = 0; t <= yMax; t += step) {
@@ -475,14 +484,21 @@ function drawChart() {
   s += '<text x="12" y="' + ((T + H - B) / 2) + '" text-anchor="middle" transform="rotate(-90 12 ' + ((T + H - B) / 2) + ')">kr per ticket</text>';
 
   const path = pts.map((d, i) => (i ? 'L' : 'M') + x(d[0]).toFixed(1) + ' ' + y(d[1]).toFixed(1)).join(' ');
-  s += '<path d="' + path + ' L' + x(pMax) + ' ' + y(0) + ' L' + x(pMin) + ' ' + y(0) + ' Z" fill="var(--accent-soft)" opacity=".6"/>';
-  s += '<path d="' + path + '" fill="none" stroke="var(--accent)" stroke-width="2.5"/>';
+  s += '<path d="' + path + '" fill="none" stroke="var(--curve)" stroke-width="2.5"/>';
+  // Thicker where the break-even price is at or below the ticket price: the night covers its costs
+  let seg = '';
+  pts.forEach((d, i) => {
+    if (d[1] <= v.ticket) seg += (seg && pts[i - 1] && pts[i - 1][1] <= v.ticket ? 'L' : 'M') + x(d[0]).toFixed(1) + ' ' + y(d[1]).toFixed(1);
+  });
+  if (seg) s += '<path d="' + seg + '" fill="none" stroke="var(--curve)" stroke-width="7" stroke-linecap="round"/>';
+  const lab = pts.find(d => d[1] < yMax * 0.92) || pts[0];
+  s += '<text x="' + (x(lab[0]) + 8) + '" y="' + (y(lab[1]) - 8) + '" style="fill:var(--curve);font-weight:600">Break-even price</text>';
 
   s += '<line x1="' + L + '" x2="' + (W - R) + '" y1="' + y(v.ticket) + '" y2="' + y(v.ticket) + '" stroke="var(--ink)" stroke-dasharray="5 4" stroke-width="1.5"/>';
   s += '<text x="' + (W - R) + '" y="' + (y(v.ticket) - 6) + '" text-anchor="end" style="fill:var(--ink);font-weight:600">Ticket ' + v.ticket + ' kr</text>';
 
   const cp = v.participants, cv = breakEvenAt(cp);
-  s += '<circle cx="' + x(cp) + '" cy="' + y(cv) + '" r="6" fill="var(--card)" stroke="var(--accent)" stroke-width="3"/>';
+  s += '<circle cx="' + x(cp) + '" cy="' + y(cv) + '" r="6" fill="var(--card)" stroke="var(--ink)" stroke-width="3"/>';
   const lx = x(cp) > W - 150 ? x(cp) - 10 : x(cp) + 10, anchor = x(cp) > W - 150 ? 'end' : 'start';
   const ly = y(cv) < T + 30 ? y(cv) + 22 : y(cv) - 12;
   s += '<text x="' + lx + '" y="' + ly + '" text-anchor="' + anchor + '" style="fill:var(--ink);font-weight:600">' + cp + ' places: ' + Math.round(cv) + ' kr</text>';
