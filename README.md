@@ -28,9 +28,9 @@ Talk to us at Night Soup, or contact us through [aarhusimprov.dk](https://aarhus
 
 ## The numbers
 
-[Our budget model](https://kellydrasmussen.github.io/aarhus_soup/) shows what a night costs and what changes it: group size, ticket price, how often we run, and whether we get a free room. Move the sliders to try it yourself. The figures are estimates, not quotes.
+[Our budget model](https://kellydrasmussen.github.io/Aarhus_soup/) shows what a night costs and what changes it: group size, ticket price, how often we run, and whether we get a free room. Move the sliders to try it yourself. The figures are estimates, not quotes.
 
-Our [pitch brief](https://kellydrasmussen.github.io/aarhus_soup/pitch.html) is the page our team used to prepare.
+Our [pitch brief](https://kellydrasmussen.github.io/Aarhus_soup/pitch.html) is the page our team used to prepare.
 
 ---
 
