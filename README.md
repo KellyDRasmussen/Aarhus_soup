@@ -18,7 +18,7 @@ A night looks like this:
 ## How you can help
 
 - **Vote for us** at Night Soup. Votes decide how the funding is shared between the five projects, and our share pays for pilot nights.
-- **A room.** A free or cheap room for the games is the biggest saving we can make.
+- **A free room** for the games. Our numbers assume we can get one, as we did for the Improv Weekend workshops.
 - **A bar with a small stage** that would host the second half of the night.
 - **Volunteer hosts** to welcome people who come alone.
 - **Help reaching internationals**, for example through language schools, newcomer groups or workplaces.

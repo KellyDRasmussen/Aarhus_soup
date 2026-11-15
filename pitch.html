@@ -86,7 +86,7 @@ a:focus-visible { outline: 2px solid var(--spot); outline-offset: 2px; }
     <tr id="grantRow"><td>Grants already counted, per night</td><td id="grant"></td></tr>
     <tr class="total" id="gapRow"><td id="gapLabel"></td><td id="gap"></td></tr>
     <tr><td id="seasonLabel"></td><td id="season"></td></tr>
-    <tr><td>Per night if we get a free workshop room</td><td id="roomGap"></td></tr>
+    <tr id="roomRow"><td>Per night if we get a free workshop room</td><td id="roomGap"></td></tr>
   </tbody>
 </table>
 <p class="muted">These are estimates, not quotes. <a href="index.html">Change the numbers in the budget model</a>, then use its "Open pitch brief with these numbers" button to update this page.</p>
@@ -125,7 +125,7 @@ a:focus-visible { outline: 2px solid var(--spot); outline-offset: 2px; }
 </div>
 <script>
 // Figures come from the budget model: query string first, then the last scenario saved in this browser, then the paid pilot scenario.
-const defaults = { places: 16, sold: 14, fill: 85, fac: 2, fee: 800, ticket: 200, nights: 6, own: 1, cost: 3899, income: 2720, grant: 0, gap: 1179, room: 800, friv: 1 };
+const defaults = { places: 16, sold: 14, fill: 85, fac: 2, fee: 800, ticket: 200, nights: 6, own: 1, cost: 2807, income: 2720, grant: 0, gap: 87, room: 0, friv: 1 };
 const d = Object.assign({}, defaults);
 let source = 'the paid pilot scenario';
 const q = new URLSearchParams(location.search);
@@ -158,6 +158,7 @@ set('gap', 'about ' + kr(Math.abs(d.gap)));
 set('seasonLabel', (short ? 'Gap' : 'Surplus') + ' for ' + d.nights + ' nights');
 set('season', 'about ' + kr(Math.abs(d.gap * d.nights)));
 const roomGap = d.gap - d.room;
+document.getElementById('roomRow').hidden = !d.room;
 set('roomGap', roomGap > 0 ? 'gap of about ' + kr(roomGap) : 'surplus of about ' + kr(-roomGap));
 
 set('voteLine', short
@@ -165,7 +166,7 @@ set('voteLine', short
   : 'in this scenario tickets cover the costs, so funding could lower the ticket price or pay for more nights.');
 set('roomLine', d.room > 0
   ? 'In this scenario the room costs about ' + kr(d.room) + ' per night, so a free room ' + (roomGap > 0 ? 'cuts the gap to about ' + kr(roomGap) + '.' : 'closes the gap.')
-  : 'This scenario already assumes the room is free.');
+  : 'This scenario assumes a free room, as the Improv Weekend workshops had. A paid room adds its full cost to every night.');
 </script>
 </body>
 </html>
