@@ -1,12 +1,37 @@
-# Aarhus_soup
+# A Night Out with Aarhus Improv
 
-Two pages for **A Night Out with Aarhus Improv** at Night Soup (29 November 2026):
+Aarhus Improv's project for **Night Soup** (Aarhus Soup vol. 29), Sunday 29 November 2026 at A-huset.
 
-- `pitch.html`: a one-page brief for the team to read before pitching. Its figures follow the budget model: use the model's "Open pitch brief with these numbers" button.
-- `index.html`: the interactive budget model
+## The idea
 
-The budget model has sliders for places, facilitators, back office, venues, food, marketing, ticket price and frequency, with switches for frivillig forening status, moms registration and honorarium vs payroll.
+There is a lot of loneliness in Aarhus, and it is hard to go out and meet people unless you already know some. It is harder if you are international, new in town, or facing a language barrier.
 
-Open either file in a browser, or view them on GitHub Pages once enabled.
+We want to run planned, facilitated nights out built around beginner improv games. You can come on your own. No improv experience is needed, and nobody is put on stage.
 
-Starting values are placeholders, not quotes. Planning aid, not tax advice.
+A night looks like this:
+
+1. Improv games with a small group in a private room
+2. Street food together, with time to talk, then a few more games
+3. A short walk past some good places in Aarhus
+4. A bar with a small stage, where you can watch improv and join in only if you want to
+
+## How you can help
+
+- **Vote for us** at Night Soup. Votes decide how the funding is shared between the five projects, and our share pays for pilot nights.
+- **A room.** A free or cheap room for the games is the biggest saving we can make.
+- **A bar with a small stage** that would host the second half of the night.
+- **Volunteer hosts** to welcome people who come alone.
+- **Help reaching internationals**, for example through language schools, newcomer groups or workplaces.
+- **Come to the first night** and tell us what to change.
+
+Talk to us at Night Soup, or contact us through [aarhusimprov.dk](https://aarhusimprov.dk).
+
+## The numbers
+
+[Our budget model](https://kellydrasmussen.github.io/aarhus_soup/) shows what a night costs and what changes it: group size, ticket price, how often we run, and whether we get a free room. Move the sliders to try it yourself. The figures are estimates, not quotes.
+
+Our [pitch brief](https://kellydrasmussen.github.io/aarhus_soup/pitch.html) is the page our team used to prepare.
+
+---
+
+Aarhus Improv is a non-profit association. Any surplus goes back into community activities.
