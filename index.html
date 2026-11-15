@@ -1,0 +1,522 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Improv Night Out Budget Model</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  /* Layout: controls on the left, live results + chart on the right; stacks on phones */
+  --ink: #1b2230;
+  --muted: #5d6676;
+  --paper: #f4f5f7;
+  --card: #ffffff;
+  --line: #dde1e8;
+  --accent: #c43d4b;      /* stage-curtain red */
+  --accent-soft: #f6dfe2;
+  --good: #0b6aa8;      /* blue, not green: readable with red-green colour blindness */
+  --warn: #8a5a00;
+  --bad: #c2410c;       /* orange, not red */
+  --band: rgba(11,106,168,.10);
+  --display: "Bricolage Grotesque", "Segoe UI", system-ui, sans-serif;
+  --body: "IBM Plex Sans", "Segoe UI", system-ui, sans-serif;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --ink: #e8ebf1; --muted: #9aa3b2; --paper: #12161e; --card: #1b2029; --line: #2c333f;
+    --accent: #ee6f7c; --accent-soft: #3a2026; --good: #5fb0ec; --warn: #e6b450; --bad: #f08a4b;
+    --band: rgba(95,176,236,.13); color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --ink: #e8ebf1; --muted: #9aa3b2; --paper: #12161e; --card: #1b2029; --line: #2c333f;
+  --accent: #ee6f7c; --accent-soft: #3a2026; --good: #5fb0ec; --warn: #e6b450; --bad: #f08a4b;
+  --band: rgba(95,176,236,.13); color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+body { background: var(--paper); color: var(--ink); font: 15px/1.5 var(--body); }
+.wrap { max-width: 1120px; margin: 0 auto; padding: 24px 16px 48px; }
+header h1 { font: 800 clamp(26px, 4vw, 36px)/1.1 var(--display); margin: 0 0 6px; text-wrap: balance; }
+header p { margin: 0; color: var(--muted); max-width: 65ch; }
+.presets { display: flex; flex-wrap: wrap; gap: 8px; margin: 16px 0 20px; align-items: center; }
+.presets span { color: var(--muted); font-size: 13px; margin-right: 4px; }
+button { font: 500 14px var(--body); color: var(--ink); background: var(--card); border: 1px solid var(--line);
+  border-radius: 999px; padding: 7px 14px; cursor: pointer; }
+button:hover { border-color: var(--accent); }
+button:focus-visible, input:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+button.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+.grid { display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 6fr); gap: 20px; align-items: start; }
+@media (max-width: 860px) { .grid { grid-template-columns: 1fr; } }
+.card { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 18px; }
+.controls { display: grid; gap: 18px; }
+.group h2, .card h2 { font: 600 13px var(--body); letter-spacing: .06em; text-transform: uppercase; color: var(--muted); margin: 0 0 10px; }
+.row { display: grid; gap: 4px; padding: 8px 0; border-top: 1px solid var(--line); }
+.row:first-of-type { border-top: 0; }
+.row .top { display: flex; justify-content: space-between; gap: 12px; align-items: baseline; }
+.row label { font-weight: 500; }
+.row output { font-variant-numeric: tabular-nums; font-weight: 600; white-space: nowrap; }
+.row small { color: var(--muted); font-size: 12.5px; }
+input[type=range] { width: 100%; accent-color: var(--accent); margin: 2px 0; }
+.results { display: grid; gap: 20px; position: sticky; top: 12px; }
+@media (max-width: 860px) { .results { position: static; } }
+.tiles { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 12px; }
+.tile { border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; display: grid; gap: 2px; }
+.tile.hero { grid-column: 1 / -1; border-left: 5px solid var(--good); }
+.tile.hero.neg { border-left-color: var(--bad); }
+.tile .k { font-size: 12.5px; color: var(--muted); }
+.tile .v { font: 700 24px/1.15 var(--display); font-variant-numeric: tabular-nums; }
+.tile.hero .v { font-size: 34px; }
+.tile .s { font-size: 12.5px; color: var(--muted); }
+.pos { color: var(--good); } .neg-t { color: var(--bad); }
+.chip { display: inline-block; font: 600 12px var(--body); padding: 2px 9px; border-radius: 999px; margin-left: 6px; vertical-align: middle; }
+.chip.good { background: var(--band); color: var(--good); }
+.chip.warn { background: color-mix(in srgb, var(--warn) 15%, transparent); color: var(--warn); }
+.chip.bad { background: color-mix(in srgb, var(--bad) 15%, transparent); color: var(--bad); }
+.stack { display: flex; height: 22px; border-radius: 6px; overflow: hidden; margin: 6px 0 10px; background: var(--line); }
+.stack div { height: 100%; }
+.legend { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 4px 16px; font-size: 13px; }
+.legend div { display: flex; justify-content: space-between; gap: 8px; }
+.legend i { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 6px; }
+.legend b { font-weight: 600; font-variant-numeric: tabular-nums; }
+svg text { fill: var(--muted); font: 11px var(--body); }
+.chart-note { font-size: 13px; color: var(--muted); margin: 6px 0 0; }
+.foot { margin-top: 20px; color: var(--muted); font-size: 13px; max-width: 80ch; }
+.copied { font-size: 13px; color: var(--good); margin-left: 6px; }
+.switch { display: grid; grid-template-columns: auto 1fr; gap: 12px; align-items: start; cursor: pointer; padding: 6px 0; }
+.switch input { position: absolute; opacity: 0; width: 1px; height: 1px; }
+.switch .track { width: 40px; height: 22px; border-radius: 999px; background: var(--line); position: relative; transition: background .15s; margin-top: 2px; }
+.switch .track::after { content: ""; position: absolute; top: 3px; left: 3px; width: 16px; height: 16px; border-radius: 50%; background: var(--card); box-shadow: 0 1px 2px rgba(0,0,0,.25); transition: left .15s; }
+.switch input:checked + .track { background: var(--accent); }
+.switch input:checked + .track::after { left: 21px; }
+.switch input:focus-visible + .track { outline: 2px solid var(--accent); outline-offset: 2px; }
+.switch small { color: var(--muted); font-size: 12.5px; }
+.switch.sub { margin-left: 52px; border-top: 1px solid var(--line); padding-top: 10px; margin-top: 4px; grid-template-columns: auto 1fr; }
+.switch.sub[hidden] { display: none; }
+.threshold { margin: 10px 0 0; font-size: 13px; padding: 8px 10px; border-radius: 8px; background: var(--paper); }
+.threshold b { font-variant-numeric: tabular-nums; }
+.payrow { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 8px 0; border-top: 1px solid var(--line); flex-wrap: wrap; }
+.payrow:first-of-type { border-top: 0; }
+.payrow > span { font-weight: 500; }
+.seg { display: inline-flex; border: 1px solid var(--line); border-radius: 999px; padding: 2px; background: var(--paper); }
+.seg input { position: absolute; opacity: 0; width: 1px; height: 1px; }
+.seg label { padding: 5px 12px; border-radius: 999px; font-size: 13.5px; cursor: pointer; color: var(--muted); }
+.seg input:checked + label { background: var(--accent); color: #fff; font-weight: 600; }
+.seg input:focus-visible + label { outline: 2px solid var(--accent); outline-offset: 1px; }
+#payrollExtras[hidden] { display: none; }
+#payrollExtras .row:first-of-type { border-top: 1px solid var(--line); }
+@media (prefers-reduced-motion: reduce) { .switch .track, .switch .track::after { transition: none; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>A Night Out with Aarhus Improv: budget model</h1>
+    <p>Move the sliders to see what one night costs, what a ticket needs to be, and what a season adds up to. All amounts in DKK. Starting values are rough guesses to replace with real quotes.</p>
+  </header>
+
+  <div class="presets" role="group" aria-label="Scenarios">
+    <span>Try a scenario:</span>
+    <button type="button" data-preset="pilot">Paid pilot</button>
+    <button type="button" data-preset="volunteer">Volunteer-run</button>
+    <button type="button" data-preset="grant">Grant-funded, low ticket</button>
+    <button type="button" data-preset="monthly">Monthly, bigger groups</button>
+    <button type="button" id="copy" class="primary">Copy scenario summary</button><span id="copied" class="copied" aria-live="polite"></span>
+  </div>
+
+  <div class="grid">
+    <div class="controls" id="controls">
+      <section class="card group">
+        <h2>Association type</h2>
+        <label class="switch" for="frivillig">
+          <input type="checkbox" id="frivillig" role="switch" checked>
+          <span class="track" aria-hidden="true"></span>
+          <span><strong>Registered as a frivillig forening</strong><br><small>Can pay honoraria, but can't have employees or charge moms. Turn off to model a change of registration.</small></span>
+        </label>
+      </section>
+      <section class="card group">
+        <h2>Moms (VAT)</h2>
+        <label class="switch" for="moms">
+          <input type="checkbox" id="moms" role="switch">
+          <span class="track" aria-hidden="true"></span>
+          <span><strong>Moms-registered</strong><br><small>Tickets include 25% moms paid to SKAT. Moms is refunded on marketing, materials, start-up costs, payroll admin and (optionally) venues, and a quarter of it on food.</small></span>
+        </label>
+        <label class="switch sub" for="venueMoms" id="venueMomsRow">
+          <input type="checkbox" id="venueMoms">
+          <span class="track" aria-hidden="true"></span>
+          <span>Venues charge moms on rental<br><small>Many rooms are rented without moms. Check each quote.</small></span>
+        </label>
+        <p class="threshold" id="threshold"></p>
+      </section>
+      <label class="switch" for="ownFood" id="ownFoodRow" style="border-top:1px solid var(--line);padding-top:12px;margin-top:6px">
+        <input type="checkbox" id="ownFood" role="switch">
+        <span class="track" aria-hidden="true"></span>
+        <span><strong>Participants buy their own food</strong><br><small>The association only pays for the facilitators' food.</small></span>
+      </label>
+      <section class="card group" id="payCard">
+        <h2>How people are paid</h2>
+        <div class="payrow">
+          <span id="facPayLabel">Facilitators</span>
+          <div class="seg" role="radiogroup" aria-labelledby="facPayLabel">
+            <input type="radio" name="facPay" id="facHon" value="hon" checked><label for="facHon">Honorarium</label>
+            <input type="radio" name="facPay" id="facPayroll" value="payroll"><label for="facPayroll">Payroll</label>
+          </div>
+        </div>
+        <div class="payrow">
+          <span id="boPayLabel">Back office</span>
+          <div class="seg" role="radiogroup" aria-labelledby="boPayLabel">
+            <input type="radio" name="boPay" id="boHon" value="hon" checked><label for="boHon">Honorarium</label>
+            <input type="radio" name="boPay" id="boPayroll" value="payroll"><label for="boPayroll">Payroll</label>
+          </div>
+        </div>
+        <div id="payrollExtras">
+          <div class="row">
+            <div class="top"><label for="oncost">Employer on-costs</label><output id="oncost-out" for="oncost"></output></div>
+            <input type="range" id="oncost" min="0" max="30" step="1" value="15">
+            <small>Added to payroll pay: feriepenge (12.5%), ATP, work injury insurance. Add pension if you offer one</small>
+          </div>
+          <div class="row">
+            <div class="top"><label for="payAdmin">Payroll admin per year</label><output id="payAdmin-out" for="payAdmin"></output></div>
+            <input type="range" id="payAdmin" min="0" max="10000" step="250" value="3000">
+            <small>Payroll system or bookkeeper, spread across the year's nights</small>
+          </div>
+        </div>
+        <p class="threshold" id="payNote">Honorarium: the fee is the full cost. Each person pays their own tax and AM-bidrag as B-income.</p>
+      </section>
+    </div>
+
+    <div class="results">
+      <div class="card">
+        <h2>Results</h2>
+        <div class="tiles">
+          <div class="tile hero" id="heroTile">
+            <span class="k" id="yearLabel">Surplus for the community per year</span>
+            <span class="v" id="yearResult">–</span>
+            <span class="s" id="yearSub">–</span>
+          </div>
+          <div class="tile"><span class="k">Break-even ticket price</span><span class="v" id="breakeven">–</span><span class="s" id="beSub">–</span></div>
+          <div class="tile"><span class="k" id="nightLabel">Surplus per night</span><span class="v" id="nightResult">–</span><span class="s" id="nightSub">–</span></div>
+          <div class="tile"><span class="k">Cost per participant</span><span class="v" id="cpp">–</span><span class="s">before grants</span></div>
+          <div class="tile"><span class="k">Participants per facilitator</span><span class="v"><span id="ratio">–</span><span id="ratioChip" class="chip"></span></span><span class="s">5–10 per facilitator feels manageable</span></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>Where one night's money goes</h2>
+        <div class="stack" id="stack" aria-hidden="true"></div>
+        <div class="legend" id="legend"></div>
+      </div>
+
+      <div class="card">
+        <h2>Finding the sweet spot</h2>
+        <svg id="chart" viewBox="0 0 600 270" width="100%" role="img" aria-label="Break-even ticket price by number of places"></svg>
+        <p class="chart-note">The red line is the ticket price needed to break even for each number of places, with everything else as set, including how many places are sold. Below the dashed line (your ticket price), a night covers its costs. The blue band is where groups stay a comfortable size for your number of facilitators.</p>
+      </div>
+    </div>
+  </div>
+
+  <p class="foot">Enter prices as paid, moms included. A frivillig forening can only pay honoraria and must change its registration once taxable sales pass 50,000 kr a year. Planning aid, not tax advice.</p>
+</div>
+
+<script>
+const fmt = n => Math.round(n).toLocaleString('da-DK') + ' kr';
+const signed = n => (n >= 0 ? '+' : '−') + Math.abs(Math.round(n)).toLocaleString('da-DK') + ' kr';
+
+const groups = [
+  { title: 'People', items: [
+    { id: 'participants', label: 'Places per night', min: 4, max: 40, step: 1, val: 16, unit: '' },
+    { id: 'facilitators', label: 'Facilitators per night', min: 1, max: 6, step: 1, val: 2, unit: '' },
+    { id: 'fee', label: 'Fee per facilitator', min: 0, max: 2000, step: 50, val: 800, unit: 'kr', hint: '0 = volunteers' },
+    { id: 'boHours', label: 'Back-office hours per night', min: 0, max: 20, step: 1, val: 4, unit: 'h', hint: 'Booking, promotion, sign-ups, admin' },
+    { id: 'boRate', label: 'Back-office pay per hour', min: 0, max: 400, step: 10, val: 200, unit: 'kr', hint: '0 = volunteers' }
+  ]},
+  { title: 'Venues, food, marketing and kit', items: [
+    { id: 'workshop', label: 'Workshop room rental', min: 0, max: 4000, step: 100, val: 800, unit: 'kr' },
+    { id: 'show', label: 'Show venue / bar booking', min: 0, max: 4000, step: 100, val: 0, unit: 'kr', hint: 'Often free with a minimum bar spend' },
+    { id: 'food', label: 'Food per person', min: 0, max: 200, step: 5, val: 90, unit: 'kr', hint: 'Street food for participants and facilitators' },
+    { id: 'marketing', label: 'Marketing and ads per night', min: 0, max: 2000, step: 50, val: 200, unit: 'kr', hint: 'Paid social ads, boosted posts, flyers' },
+    { id: 'materials', label: 'Materials per night', min: 0, max: 1000, step: 25, val: 100, unit: 'kr', hint: 'Name tags, paper, pens, consumables' },
+    { id: 'startup', label: 'Start-up costs (first year only)', min: 0, max: 5000, step: 100, val: 500, unit: 'kr', hint: 'Reusable kit: name badges, a few props, printed game cards. Design done in-house' }
+  ]},
+  { title: 'Money in and frequency', items: [
+    { id: 'ticket', label: 'Ticket price', min: 0, max: 400, step: 10, val: 150, unit: 'kr' },
+    { id: 'fill', label: 'Places sold', min: 30, max: 100, step: 5, val: 85, unit: '%', hint: 'Share of places that are sold and turn up' },
+    { id: 'feePct', label: 'Ticketing fee', min: 0, max: 15, step: 0.5, val: 5, unit: '%', hint: 'Share of each ticket kept by the ticket platform. Check your Billetto rate' },
+    { id: 'events', label: 'Nights per year', min: 1, max: 24, step: 1, val: 6, unit: '' },
+    { id: 'grant', label: 'Grants per year', min: 0, max: 60000, step: 1000, val: 0, unit: 'kr', hint: 'Grants only. Sponsorship with advertising in return counts as sales for moms' }
+  ]}
+];
+
+const presets = {
+  pilot:     { participants: 16, facilitators: 2, fee: 800, boHours: 4, boRate: 200, workshop: 800, show: 0, food: 90, marketing: 200, materials: 100, startup: 500, ticket: 200, fill: 85, feePct: 5, events: 6, grant: 0, ownFood: true },
+  volunteer: { participants: 14, facilitators: 2, fee: 0, boHours: 3, boRate: 0, workshop: 500, show: 0, food: 80, marketing: 50, materials: 75, startup: 300, ticket: 100, fill: 85, feePct: 5, events: 6, grant: 0, ownFood: true },
+  grant:     { participants: 18, facilitators: 2, fee: 1000, boHours: 5, boRate: 200, workshop: 1000, show: 500, food: 100, marketing: 300, materials: 100, startup: 1000, ticket: 80, fill: 85, feePct: 5, events: 8, grant: 50000, ownFood: false },
+  monthly:   { participants: 24, facilitators: 3, fee: 700, boHours: 4, boRate: 200, workshop: 1200, show: 0, food: 90, marketing: 250, materials: 100, startup: 500, ticket: 260, fill: 85, feePct: 5, events: 12, grant: 0, ownFood: true }
+};
+
+const colors = { Facilitators: '#0072B2', 'Back office': '#56B4E9', 'Payroll admin': '#CC79A7', 'Workshop room': '#E69F00', 'Show venue': '#F0E442', Food: '#D55E00', Marketing: '#009E73', Materials: '#999999', 'Start-up': '#7A5195', 'Ticket fees': '#3D4A5C' };
+const v = {};
+
+function frequencyText(n) {
+  const months = 12 / n;
+  if (n >= 24) return 'twice a month';
+  if (n >= 12) return 'about monthly';
+  if (Math.abs(months - Math.round(months)) < 0.15) return 'about every ' + Math.round(months) + ' months';
+  return 'about every ' + months.toFixed(1) + ' months';
+}
+
+function build() {
+  const root = document.getElementById('controls');
+  groups.forEach(g => {
+    const card = document.createElement('section');
+    card.className = 'card group';
+    card.innerHTML = '<h2>' + g.title + '</h2>';
+    g.items.forEach(it => {
+      v[it.id] = it.val;
+      const row = document.createElement('div');
+      row.className = 'row';
+      row.innerHTML =
+        '<div class="top"><label for="' + it.id + '">' + it.label + '</label><output id="' + it.id + '-out" for="' + it.id + '"></output></div>' +
+        '<input type="range" id="' + it.id + '" min="' + it.min + '" max="' + it.max + '" step="' + it.step + '" value="' + it.val + '">' +
+        (it.hint || it.id === 'events' ? '<small id="' + it.id + '-hint">' + (it.hint || '') + '</small>' : '');
+      card.appendChild(row);
+      row.querySelector('input').addEventListener('input', e => { v[it.id] = +e.target.value; update(); });
+    });
+    root.appendChild(card);
+    if (g.title === 'People') root.appendChild(document.getElementById('payCard'));
+    if (g.title.startsWith('Venues')) card.appendChild(document.getElementById('ownFoodRow'));
+  });
+}
+
+const isFrivillig = () => document.getElementById('frivillig').checked;
+const facPayroll = () => document.getElementById('facPayroll').checked;
+const boPayroll = () => document.getElementById('boPayroll').checked;
+const onCost = () => 1 + (+document.getElementById('oncost').value) / 100;
+
+const MOMS = 1.25;
+const isReg = () => document.getElementById('moms').checked;
+const venueMoms = () => document.getElementById('venueMoms').checked;
+const ticketNet = () => isReg() ? v.ticket / MOMS : v.ticket;
+const ownFood = () => document.getElementById('ownFood').checked;
+const att = p => p * v.fill / 100; // people who actually buy a ticket and come
+
+// Costs after any moms refund (what the association really carries)
+function costAt(p) {
+  const g = grossCostAt(p);
+  if (!isReg()) return g;
+  const out = Object.assign({}, g);
+  out.Food = g.Food - (g.Food - g.Food / MOMS) * 0.25; // only 25% of moms on meals is deductible
+  out['Payroll admin'] = g['Payroll admin'] / MOMS;
+  out.Marketing = g.Marketing / MOMS;
+  out.Materials = g.Materials / MOMS;
+  out['Start-up'] = g['Start-up'] / MOMS;
+  if (venueMoms()) { out['Workshop room'] = g['Workshop room'] / MOMS; out['Show venue'] = g['Show venue'] / MOMS; }
+  return out;
+}
+function grossCostAt(p) {
+  return {
+    Facilitators: v.facilitators * v.fee * (facPayroll() ? onCost() : 1),
+    'Back office': v.boHours * v.boRate * (boPayroll() ? onCost() : 1),
+    'Payroll admin': (facPayroll() || boPayroll()) ? +document.getElementById('payAdmin').value / v.events : 0,
+    'Workshop room': v.workshop,
+    'Show venue': v.show,
+    Food: ((ownFood() ? 0 : att(p)) + v.facilitators) * v.food,
+    Marketing: v.marketing,
+    Materials: v.materials,
+    'Start-up': v.startup / v.events,
+    'Ticket fees': att(p) * v.ticket * v.feePct / 100
+  };
+}
+const total = o => Object.values(o).reduce((a, b) => a + b, 0);
+// Ticket price (as paid by the participant, incl. moms if registered) needed to cover costs
+const breakEvenAt = p => {
+  const c = costAt(p);
+  const base = total(c) - c['Ticket fees'] - v.grant / v.events;
+  const keep = (isReg() ? 1 / MOMS : 1) - v.feePct / 100; // share of each ticket the association keeps
+  return Math.max(0, base / (att(p) * keep));
+};
+
+function update() {
+  const friv = isFrivillig();
+  if (friv) {
+    document.getElementById('moms').checked = false;
+    document.getElementById('facHon').checked = true;
+    document.getElementById('boHon').checked = true;
+    document.getElementById('facPayroll').checked = false;
+    document.getElementById('boPayroll').checked = false;
+  }
+  ['moms', 'facPayroll', 'boPayroll'].forEach(id => { document.getElementById(id).disabled = friv; });
+  document.querySelectorAll('.seg, label[for="moms"]').forEach(n => { n.style.opacity = friv ? .5 : 1; });
+  groups.forEach(g => g.items.forEach(it => {
+    const val = v[it.id];
+    document.getElementById(it.id + '-out').textContent =
+      it.unit === 'kr' ? fmt(val) : it.unit === 'h' ? val + ' h' : it.unit === '%' ? String(val).replace('.', ',') + '%' : val;
+  }));
+  document.getElementById('events-hint').textContent = frequencyText(v.events);
+
+  const p = v.participants;
+  const costs = costAt(p);
+  const nightCost = total(costs);
+  const anyPayroll = facPayroll() || boPayroll();
+  document.getElementById('payrollExtras').hidden = !anyPayroll;
+  document.getElementById('oncost-out').textContent = document.getElementById('oncost').value + '%';
+  document.getElementById('payAdmin-out').textContent = fmt(+document.getElementById('payAdmin').value);
+  const extra = (costs.Facilitators - v.facilitators * v.fee) + (costs['Back office'] - v.boHours * v.boRate) + grossCostAt(p)['Payroll admin'];
+  document.getElementById('payNote').textContent = anyPayroll
+    ? 'Payroll adds ' + fmt(extra) + ' per night (' + fmt(extra * v.events) + ' per year) compared with paying everyone as honorarium.'
+    : 'Honorarium: the fee is the full cost. Each person pays their own tax and AM-bidrag as B-income.' + (isFrivillig() ? ' Payroll is not available to a frivillig forening.' : '');
+
+  const reg = isReg();
+  const a = att(p);
+  const nightRev = a * ticketNet();
+  const nightResult = nightRev - nightCost + v.grant / v.events;
+  const yearResult = nightResult * v.events;
+  const grossSales = a * v.ticket * v.events;
+  const momsOut = reg ? (a * v.ticket - nightRev) * v.events : 0;
+  const momsIn = reg ? (total(grossCostAt(p)) - nightCost) * v.events : 0;
+
+  document.getElementById('venueMomsRow').hidden = !reg;
+  const th = document.getElementById('threshold');
+  const over = grossSales > 50000;
+  th.innerHTML = 'Ticket sales per year: <b>' + fmt(grossSales) + '</b>. ' +
+    (over ? 'That is over the 50,000 kr limit for taxable sales in 12 months, so the association would have to register' + (friv ? ' for moms, which means changing from a frivillig forening.' : '.')
+          : friv ? 'That is under the 50,000 kr limit, so a frivillig forening can stay unregistered.' : 'That is under the 50,000 kr limit, so registering is optional as long as other taxable sales keep the total under it.') +
+    (reg ? '<br>Moms to SKAT on tickets <b>' + fmt(momsOut) + '</b>, refunded on costs <b>' + fmt(momsIn) +
+           '</b>, net payment <b>' + fmt(momsOut - momsIn) + '</b> per year.' : '');
+  th.style.borderLeft = '4px solid ' + (over && !reg ? 'var(--warn)' : 'var(--line)');
+
+  document.getElementById('yearLabel').textContent = (yearResult >= 0 ? 'Surplus for the community' : 'Shortfall to cover') + (v.startup ? ', first year' : ' per year');
+  document.getElementById('nightLabel').textContent = nightResult >= 0 ? 'Surplus per night' : 'Shortfall per night';
+  const hero = document.getElementById('heroTile');
+  hero.classList.toggle('neg', yearResult < 0);
+  const yr = document.getElementById('yearResult');
+  yr.textContent = signed(yearResult);
+  yr.className = 'v ' + (yearResult >= 0 ? 'pos' : 'neg-t');
+  document.getElementById('yearSub').textContent =
+    v.events + ' nights, about ' + Math.round(a * v.events) + ' participants in total. Costs ' + fmt(nightCost * v.events) +
+    ', tickets ' + fmt(nightRev * v.events) + (reg ? ' after moms' : '') + (v.grant ? ', grants ' + fmt(v.grant) : '') + '.' +
+    (v.startup ? ' From year two, without start-up costs: ' + signed(yearResult + costs['Start-up'] * v.events) + ' per year.' : '');
+
+  const be = breakEvenAt(p);
+  document.getElementById('breakeven').textContent = fmt(be);
+  document.getElementById('beSub').textContent = v.ticket >= be ? 'Your price covers it' : 'Short by ' + fmt(be - v.ticket) + ' per person';
+  const nr = document.getElementById('nightResult');
+  nr.textContent = signed(nightResult);
+  nr.className = 'v ' + (nightResult >= 0 ? 'pos' : 'neg-t');
+  document.getElementById('nightSub').textContent = 'Costs ' + fmt(nightCost) + ' per night';
+  document.getElementById('cpp').textContent = fmt(nightCost / a);
+
+  const ratio = a / v.facilitators;
+  document.getElementById('ratio').textContent = ratio.toFixed(1);
+  const chip = document.getElementById('ratioChip');
+  if (ratio >= 5 && ratio <= 10) { chip.className = 'chip good'; chip.textContent = 'Comfortable'; }
+  else if (ratio > 10 && ratio <= 14) { chip.className = 'chip warn'; chip.textContent = 'Stretched'; }
+  else if (ratio > 14) { chip.className = 'chip bad'; chip.textContent = 'Too many'; }
+  else { chip.className = 'chip warn'; chip.textContent = 'Overstaffed'; }
+
+  const stack = document.getElementById('stack');
+  const legend = document.getElementById('legend');
+  stack.innerHTML = ''; legend.innerHTML = '';
+  Object.entries(costs).forEach(([k, val]) => {
+    if (nightCost > 0 && val > 0) {
+      const d = document.createElement('div');
+      d.style.width = (val / nightCost * 100) + '%';
+      d.style.background = colors[k];
+      d.title = k + ': ' + fmt(val);
+      stack.appendChild(d);
+    }
+    const l = document.createElement('div');
+    l.innerHTML = '<span><i style="background:' + colors[k] + '"></i>' + k + '</span><b>' + fmt(val) + '</b>';
+    legend.appendChild(l);
+  });
+
+  drawChart();
+}
+
+function drawChart() {
+  const svg = document.getElementById('chart');
+  const W = 600, H = 270, L = 52, R = 14, T = 14, B = 36;
+  const pMin = 4, pMax = 40;
+  const pts = [];
+  for (let p = pMin; p <= pMax; p++) pts.push([p, breakEvenAt(p)]);
+  const rawMax = Math.max(v.ticket, ...pts.slice(2).map(d => d[1]), 50);
+  const yMax = Math.ceil(rawMax * 1.1 / 50) * 50;
+  const x = p => L + (p - pMin) / (pMax - pMin) * (W - L - R);
+  const y = val => T + (1 - Math.min(val, yMax) / yMax) * (H - T - B);
+  let s = '';
+
+  const bandLo = Math.max(pMin, 5 * v.facilitators * 100 / v.fill), bandHi = Math.min(pMax, 10 * v.facilitators * 100 / v.fill);
+  if (bandHi > bandLo) s += '<rect x="' + x(bandLo) + '" y="' + T + '" width="' + (x(bandHi) - x(bandLo)) + '" height="' + (H - T - B) + '" fill="var(--band)"/>';
+
+  const step = yMax <= 200 ? 50 : yMax <= 500 ? 100 : yMax <= 1000 ? 200 : 500;
+  for (let t = 0; t <= yMax; t += step) {
+    s += '<line x1="' + L + '" x2="' + (W - R) + '" y1="' + y(t) + '" y2="' + y(t) + '" stroke="var(--line)"/>';
+    s += '<text x="' + (L - 6) + '" y="' + (y(t) + 4) + '" text-anchor="end">' + t + '</text>';
+  }
+  for (let p = 5; p <= pMax; p += 5) s += '<text x="' + x(p) + '" y="' + (H - B + 16) + '" text-anchor="middle">' + p + '</text>';
+  s += '<text x="' + ((L + W - R) / 2) + '" y="' + (H - 4) + '" text-anchor="middle">Places per night</text>';
+  s += '<text x="12" y="' + ((T + H - B) / 2) + '" text-anchor="middle" transform="rotate(-90 12 ' + ((T + H - B) / 2) + ')">kr per ticket</text>';
+
+  const path = pts.map((d, i) => (i ? 'L' : 'M') + x(d[0]).toFixed(1) + ' ' + y(d[1]).toFixed(1)).join(' ');
+  s += '<path d="' + path + ' L' + x(pMax) + ' ' + y(0) + ' L' + x(pMin) + ' ' + y(0) + ' Z" fill="var(--accent-soft)" opacity=".6"/>';
+  s += '<path d="' + path + '" fill="none" stroke="var(--accent)" stroke-width="2.5"/>';
+
+  s += '<line x1="' + L + '" x2="' + (W - R) + '" y1="' + y(v.ticket) + '" y2="' + y(v.ticket) + '" stroke="var(--ink)" stroke-dasharray="5 4" stroke-width="1.5"/>';
+  s += '<text x="' + (W - R) + '" y="' + (y(v.ticket) - 6) + '" text-anchor="end" style="fill:var(--ink);font-weight:600">Ticket ' + v.ticket + ' kr</text>';
+
+  const cp = v.participants, cv = breakEvenAt(cp);
+  s += '<circle cx="' + x(cp) + '" cy="' + y(cv) + '" r="6" fill="var(--card)" stroke="var(--accent)" stroke-width="3"/>';
+  const lx = x(cp) > W - 150 ? x(cp) - 10 : x(cp) + 10, anchor = x(cp) > W - 150 ? 'end' : 'start';
+  const ly = y(cv) < T + 30 ? y(cv) + 22 : y(cv) - 12;
+  s += '<text x="' + lx + '" y="' + ly + '" text-anchor="' + anchor + '" style="fill:var(--ink);font-weight:600">' + cp + ' places: ' + Math.round(cv) + ' kr</text>';
+
+  svg.innerHTML = s;
+}
+
+function applyPreset(name) {
+  Object.entries(presets[name]).forEach(([k, val]) => {
+    if (k === 'ownFood') { document.getElementById(k).checked = val; return; }
+    v[k] = val; document.getElementById(k).value = val;
+  });
+  update();
+}
+document.querySelectorAll('[data-preset]').forEach(b => b.addEventListener('click', () => applyPreset(b.dataset.preset)));
+
+document.getElementById('copy').addEventListener('click', async () => {
+  const p = v.participants, costs = costAt(p), nightCost = total(costs);
+  const nightResult = att(p) * ticketNet() - nightCost + v.grant / v.events;
+  const lines = [
+    (isFrivillig() ? 'Frivillig forening' : 'Association registered for business activity') + ', ' +
+    'facilitators on ' + (facPayroll() ? 'payroll' : 'honorarium') + ', back office on ' + (boPayroll() ? 'payroll' : 'honorarium') +
+      ((facPayroll() || boPayroll()) ? ' (on-costs ' + document.getElementById('oncost').value + '%, admin ' + fmt(+document.getElementById('payAdmin').value) + '/year)' : ''),
+    isReg() ? 'Moms-registered' + (venueMoms() ? ' (venues charge moms)' : '') : 'Not moms-registered',
+    'A Night Out with Aarhus Improv: scenario',
+    p + ' places, ' + v.fill + '% sold, ' + v.facilitators + ' facilitators at ' + fmt(v.fee) + ', ' + v.boHours + ' h back office at ' + fmt(v.boRate) + '/h',
+    'Workshop room ' + fmt(v.workshop) + ', show venue ' + fmt(v.show) + ', food ' + fmt(v.food) + '/person' + (ownFood() ? ' (participants buy their own)' : ''),
+    'Marketing ' + fmt(v.marketing) + '/night, materials ' + fmt(v.materials) + '/night, start-up ' + fmt(v.startup) + ' (first year)',
+    'Ticket ' + fmt(v.ticket) + ', ticketing fee ' + v.feePct + '%, ' + v.events + ' nights a year (' + frequencyText(v.events) + '), grants ' + fmt(v.grant) + '/year',
+    'Cost per night ' + fmt(nightCost) + ', break-even ticket ' + fmt(breakEvenAt(p)),
+    'Surplus per night ' + signed(nightResult) + ', first year ' + signed(nightResult * v.events) + ', from year two ' + signed(nightResult * v.events + costAt(p)['Start-up'] * v.events)
+  ];
+  const msg = document.getElementById('copied');
+  try { await navigator.clipboard.writeText(lines.join('\n')); msg.textContent = 'Copied'; }
+  catch (e) { msg.textContent = 'Copying is blocked here'; }
+  setTimeout(() => { msg.textContent = ''; }, 2500);
+});
+
+document.getElementById('moms').addEventListener('change', update);
+document.getElementById('venueMoms').addEventListener('change', update);
+document.getElementById('ownFood').addEventListener('change', update);
+document.getElementById('frivillig').addEventListener('change', update);
+['facHon', 'facPayroll', 'boHon', 'boPayroll'].forEach(id => document.getElementById(id).addEventListener('change', update));
+['oncost', 'payAdmin'].forEach(id => document.getElementById(id).addEventListener('input', update));
+
+build();
+applyPreset('pilot');
+</script>
+</body>
+</html>
